@@ -1,0 +1,248 @@
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<title> api testing</title>
+	<style>
+		body {
+			background-color: black;
+		}
+		.fullscreen_container {
+			background-color: transparent;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 100%;
+			width: 100%;
+			position: absolute;
+			top: 0px;
+			left: 0px;
+		}
+		
+		#loading_bar_outside {
+			border: 3px solid grey;
+		}
+		#loading_bar_inside {
+			background-color: grey;
+		}
+		
+		#main_container {
+			flex-direction: column;
+		}
+		#card_container {
+			display: flex;
+			height: 680px;
+		}
+		#card_loading {
+			position: relative;
+			top: 250px;
+			height: 100px;
+			width: 100px;
+		}
+		.card_holding_canvas {
+		
+		}
+		#user_input {
+			font-size: 36px;
+		}
+		#results_background {
+			background-color: black;
+			opacity: .5;
+			visibility: hidden;
+		}
+		#results_container {
+			pointer-events: none;
+		}
+		#results_display {
+			background-color: white;
+			width: 500px;
+			height: 400px;
+		}
+		#invalid_input_p {
+			color: red;
+			text-align: center;
+		}
+		#row_main_container {
+		
+		}
+		#left_side {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+		#right_side {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+		#symbol_guide {
+			background-color: grey;
+			width: 300px;
+			height: 100px;
+			display: flex;
+			flex-flow: column wrap;
+			justify-content: center;
+			align-items: center;
+			border-radius: 10%;
+		}
+		#form_container {
+			display: flex;
+			flex-direction: row;
+			justify-content: center;
+			align-items: center;
+		}
+		#form_buttons_container {
+			height: 75px;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+		#text_column {
+			color:white;
+			width:300px;
+			height:650px;
+		}
+		#score_span {
+			font-size: 36;
+		}
+		#tries_span {
+			font-size: 36;
+		}
+		.medal_anim {
+			animation-name: medal_anim_frames;
+			animation-duration: 3s;
+			animation-iteration-count: 1;
+			animation-direction: normal;
+			animation-fill-mode: forwards;
+		}
+		@keyframes medal_anim_frames {
+			0% {
+				top: 50px;
+				width: 162px;
+				height: 180px;
+				visibility: visible;
+				opacity: 0%;
+			}
+			10% {
+				top: 0px;
+				width: 179px;
+				height: 200px;
+				opacity: 100%;
+			}
+			70% {
+				bottom: 0px;
+				width: 179px;
+				height: 200px;
+				opacity: 100%;
+			}
+			100% {
+				bottom: 50px;
+				width: 179px;
+				height: 200px;
+				opacity: 0%;
+				visibility: hidden;
+			}
+		}
+		.bg_fade_anim {
+			animation-name: bg_fade_anim_frames;
+			animation-duration: 3s;
+			animation-iteration-count: 1;
+			animation-direction: normal;
+			animation-fill-mode: forwards;
+		}
+		@keyframes bg_fade_anim_frames {
+			0% {
+				visibility: visible;
+				opacity: 0%;
+			}
+			5% {
+				opacity: 50%;
+			}
+			80% {
+				opacity: 50%;
+			}
+			100% {
+				visibility: hidden;
+				opacity: 0%;
+			}
+		}
+		.wrong_answer_anim {
+			animation: wrong_answer_anim_frames;
+			animation-duration: 2s;
+			animation-iteration-count: 1;
+			animation-direction: normal;
+		}
+		@keyframes wrong_answer_anim_frames {
+			0% { color: red; }
+			100% { color: white; }
+		}
+	</style>
+</head>
+
+<body>
+	<!-- 488x680 card dimensions -->
+	<!--<div id="loading_bar_container" style="visibility:hidden;" class="fullscreen_container">
+		<div id="loading_bar_outside">
+			<div id="loading_bar_inside"></div>
+		</div>
+	</div>-->
+	
+	<div id="main_container" class="fullscreen_container">
+		<div id="row_main_container" class="fullscreen_container">
+			<div id="left_side">
+				<div id="card_container">
+					<img id="card_loading" src="https://upload.wikimedia.org/wikipedia/commons/b/b9/Youtube_loading_symbol_1_(wobbly).gif" />
+					<canvas id="card_canvas" class="card_holding_canvas"></canvas>
+					<!--<img id="card_img" />-->
+					<canvas id="card_back_canvas" class="card_holding_canvas"></canvas>
+					<!--<img id="card_img_back" />-->
+				</div>
+				<div style="height:25px;"></div>
+				<form id="user_input_form" onsubmit="return false;">
+					<div id="form_container">
+						<!--<p id="invalid_input_p">Invalid answer, consider trying the mana symbol buttons if needed.</p>-->
+						<input id="user_input" type="text" />
+						<div style="width:10px"></div>
+						<div id="form_buttons_container">
+							<button type="submit" style="width:65px; background-color:rgb(175,215,175)">Submit</button>
+							<div style="height:5px;"></div>
+							<button type="reset" style="width:65px; background-color:rgb(215,175,175)">Clear</button>
+						</div>
+					</div>
+				</form>
+			</div>
+			<div style="width:25px;"></div>
+			<div id="right_side">
+				<div id="text_column">
+					Try to guess the mana cost of the displayed card!
+					<br /><br />
+					Correct answers must have the same colors and converted mana cost 
+					as the displayed card.
+					<br /><br />
+					If you can also guess the exact combination of mana symbols 
+					on your first try, you'll be rewarded with an additional point.
+					<br /><br /><br /><br />
+					Attempts Left: <span id="tries_span">2/2</span>
+					<br /><br />
+					Score: <span id="score_span">0/0</span>
+					<br /><br /><br /><br />
+					<span id="hint_span"></span>
+				</div>
+				<div id="symbol_guide"></div>
+			</div>
+		</div>
+		
+	</div>
+	
+	<div id="results_background" class="fullscreen_container"></div>
+	<div id="results_container" class="fullscreen_container">
+		<!--<div id="results_display"></div>-->
+	</div>
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<script src="jCanvas.js"></script>
+	<script src="costthecard.js"></script>
+</body>
+</html>
