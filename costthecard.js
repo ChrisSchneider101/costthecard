@@ -21,7 +21,8 @@ const common_medal_src = "sym_common.png";
 const uncommon_medal_src = "sym_uncommon.png";
 const rare_medal_src = "sym_rare.png";
 const mythicrare_medal_src = "sym_mythicrare.png";
-var medal_img;
+//var medal_img = document.getElementById("medal_image");
+var answer_img_url;
 
 const card_width = 488;
 const card_height = 680;
@@ -74,25 +75,40 @@ async function getNewCard() {
 			+ next_card_page_index + "&" + base_query;
 		var next_scryfall_data = await getJSONFromURL(next_url, false);
 		var next_card = next_scryfall_data.data[next_card_relative_index];
-		
-		// accept only no-mana-cost cards if they are double faced (manacost is in card_faces[0])
-		if (next_card.mana_cost) {
-			if (next_card.mana_cost == "") {
-				console.log("Invalid card fetched, maybe a token or something, trying again...");
+		try {
+			// had a freak accident here that im prepared for this time, hopefully can get more info it happens again
+			if (next_card == null) throw "Despite successfully fetching JSON, next_card is somehow null";
+			
+			// accept only no-mana-cost cards if they are double faced (manacost is in card_faces[0])
+			if (next_card.mana_cost) {
+				if (next_card.mana_cost == "") {
+					console.log("Invalid card fetched, maybe a token or something, trying again...");
+				}
+				else {
+					console.log("Found valid regular card");
+					valid_card_found = true;
+				}
+			}
+			else if (next_card.layout == "transform"){
+				console.log("Found valid double-face card");
+				next_card.mana_cost = next_card.card_faces[0].mana_cost;	// for simplifying later checks, dont need to accomodate double faced cards everywhere else
+				valid_card_found = true;
+				is_double_faced = true;
 			}
 			else {
-				console.log("Found valid regular card");
-				valid_card_found = true;
+				console.log("Invalid card fetched (likely a suspend card that was problematic to filter out), trying again...");
 			}
 		}
-		else if (next_card.layout == "transform"){
-			console.log("Found valid double-face card");
-			next_card.mana_cost = next_card.card_faces[0].mana_cost;	// for simplifying later checks, dont need to accomodate double faced cards everywhere else
-			valid_card_found = true;
-			is_double_faced = true;
-		}
-		else {
-			console.log("Invalid card fetched (likely a suspend card that was problematic to filter out), trying again...");
+		catch (e) {
+			console.log(e);
+			console.log("absolute index: " + next_card_absolute_index);
+			console.log("page index: " + next_card_page_index);
+			console.log("relative index: " + next_card_relative_index);
+			console.log("page url: " + next_url);
+			console.log("scrfall data:");
+			console.log(next_scryfall_data);
+			console.log("next card:");
+			console.log(next_card);
 		}
 		
 	}
@@ -115,6 +131,8 @@ async function getNewCard() {
 			x: 0, y: 0, width: card_width, height: card_height,
 			fromCenter: false
 		});
+		//$("#answer_image").attr("src", next_card.card_faces[0].image_uris.normal)
+		answer_img_url = next_card.card_faces[0].image_uris.normal;
 		$("#card_back_canvas").show();
 	}
 	else {
@@ -125,6 +143,8 @@ async function getNewCard() {
 			x: 0, y: 0, width: card_width, height: card_height,
 			fromCenter: false, load: coverCost
 		});
+		//$("#answer_image").attr("src", next_card.image_uris.normal);
+		answer_img_url = next_card.image_uris.normal;
 		$("#card_back_canvas").hide();
 	}	
 	
@@ -203,25 +223,29 @@ $("#user_input_form").submit(async function() {
 		submission_is_correct = true;
 		console.log("4 points");
 		score += 4;
-		animateMedal(mythicrare_medal_src);
+		//animateMedal(mythicrare_medal_src);
+		animateQuestionPassed(mythicrare_medal_src, answer_img_url)
 	}
 	else if (current_card.cmc == cleaned_mana_cost_data.cmc && hasSameColors(current_card, cleaned_mana_cost_data) && amount_of_submissions == 1) {
 		submission_is_correct = true;
 		console.log("3 points");
 		score += 3;
-		animateMedal(rare_medal_src);
+		//animateMedal(rare_medal_src);
+		animateQuestionPassed(rare_medal_src, answer_img_url)
 	}
 	else if (current_card.cmc == cleaned_mana_cost_data.cmc && hasSameColors(current_card, cleaned_mana_cost_data) && amount_of_submissions == 2) {
 		submission_is_correct = true;
 		console.log("2 points");
 		score += 2;
-		animateMedal(uncommon_medal_src);
+		//animateMedal(uncommon_medal_src);
+		animateQuestionPassed(uncommon_medal_src, answer_img_url)
 	}
 	else if (current_card.cmc == cleaned_mana_cost_data.cmc && hasSameColors(current_card, cleaned_mana_cost_data) && amount_of_submissions == 3) {
 		submission_is_correct = true;
 		console.log("1 point");
 		score += 1;
-		animateMedal(common_medal_src);
+		//animateMedal(common_medal_src);
+		animateQuestionPassed(common_medal_src, answer_img_url)
 	}
 	
 	// incorrect submission possibilities following:
@@ -230,7 +254,8 @@ $("#user_input_form").submit(async function() {
 		console.log("Out of guesses, answer was " + current_card.mana_cost);
 		//await getNewCard();
 		$("#tries_span").html((2 - amount_of_submissions) + "/2");
-		animateWrongAnswer();
+		//animateWrongAnswer();
+		animateQuestionFailed(answer_img_url);
 		await getNewQuestion();
 		//previous_wrong_submission_cost = null;
 	}
@@ -240,7 +265,7 @@ $("#user_input_form").submit(async function() {
 		//console.log(color_hint);
 		$("#hint_span").html(color_hint);
 		$("#tries_span").html((2 - amount_of_submissions) + "/2");
-		animateWrongAnswer();
+		//animateWrongAnswer();
 		previous_wrong_submission_cost = cleaned_mana_cost_data.cost;
 		//for (let)
 	}
@@ -252,7 +277,7 @@ $("#user_input_form").submit(async function() {
 		//console.log(cmc_hint);
 		$("#hint_span").html(cmc_hint);
 		$("#tries_span").html((2 - amount_of_submissions) + "/2");
-		animateWrongAnswer();
+		//animateWrongAnswer();
 		previous_wrong_submission_cost = cleaned_mana_cost_data.cost;
 		
 	}
@@ -260,10 +285,12 @@ $("#user_input_form").submit(async function() {
 		console.log("incorrect, but not sure why, should never reach this point");
 	}
 	
+	$("#user_input").val("");
+	
 	if (submission_is_correct) {
 		// this nextQuestion happens on a correct submission
 		console.log("correct");
-		//$("#user_input").val("");
+		$("#user_input").val("");
 		//await getNewCard();
 		await getNewQuestion();
 		//previous_wrong_submission_cost = null;
@@ -271,6 +298,7 @@ $("#user_input_form").submit(async function() {
 	else {
 		// do this on every wrong answer
 		//previous_wrong_submission_cost = cleaned_mana_cost_data.cost;
+		animateWrongAnswer();
 	}
 	ready_for_submission = true;
 });
@@ -288,10 +316,10 @@ async function validateUserAnswer(mana_cost) {
 	}
 }
 
-async function showResults(points_earned) {
+/*async function showResults(points_earned) {
 	$("#results_background").show();
 	$("#results_container").show();
-}
+}*/
 
 function hasSameColors(mana1, mana2) {
 	// per the documentation, colors are limited to WUBRG chars, but are not in any particular order
@@ -398,26 +426,59 @@ async function loadManaSymbols() {
 	container.appendChild(row);
 }
 
-function setMedal() {
+/*function setMedal() {
 	//179x200
-	medal_img = document.createElement("img");
-	medal_img.style.width = 179;
-	medal_img.style.position = "relative";
-	medal_img.style.visibility = "hidden";
-	$("#results_container").append(medal_img);
+	//medal_img = document.createElement("img");
+	//medal_img = document.getElementById("medal_image");
+	//medal_img.style.width = 179;
+	//medal_img.style.position = "relative";
+	//medal_img.style.visibility = "hidden";
+	//$("#results_container").append(medal_img);
 	
+}*/
+
+function animateQuestionPassed(medal_src, card_src) {
+	animateMedal(medal_src);
+	animateAnswerCard(card_src);
+	animateBGFade();
+}
+
+function animateQuestionFailed(card_src) {
+	animateAnswerCard(card_src);
+	animateBGFade();
 }
 
 function animateMedal(src) {
-	medal_img.src = src;
-	medal_img.classList.remove("medal_anim");
+	//medal_img.src = src;
+	/*medal_img.classList.remove("medal_anim");
 	void medal_img.offsetWidth;
-	medal_img.classList.add("medal_anim");
+	medal_img.classList.add("medal_anim");*/
+	
+	$("#medal_image").attr("src", src);
+	$("#medal_image").removeClass("medal_anim");
+	$("#medal_image").width();
+	$("#medal_image").addClass("medal_anim");
+	
+	/*$("#results_image_message").removeClass("medal_anim");
+	$("#results_image_message").width();
+	$("#results_image_message").addClass("medal_anim");*/
 	
 	/*document.getElementById("results_background").classList.remove("bg_fade_anim");
 	void document.getElementById("results_background").offsetWidth;
 	document.getElementById("results_background").classList.add("bg_fade_anim");*/
 	
+	
+}
+
+function animateAnswerCard(src) {
+	//$("#answer_image").attr("src", answer_image_url);
+	$("#answer_image").attr("src", src);
+	$("#answer_image").removeClass("answer_anim");
+	$("#answer_image").width();
+	$("#answer_image").addClass("answer_anim");
+}
+
+function animateBGFade() {
 	$("#results_background").removeClass("bg_fade_anim");
 	$("#results_background").width();
 	$("#results_background").addClass("bg_fade_anim");
@@ -430,7 +491,7 @@ function animateWrongAnswer() {
 }
 
 async function getNewQuestion() {
-	$("#user_input").val("");
+	//$("#user_input").val("");
 	previous_wrong_submission_cost = null;
 	possible_score += 4;
 	getNewCard();	// turns off submissions for duration
@@ -461,9 +522,11 @@ async function asyncmain() {
 	// debug
 	//$("#results_background").hide();
 	//$("#results_container").hide();
+	//medal_img.src = common_medal_src;
+	//medal_img.style.visibility = "hidden";
 	
 	setCanvases();				// as far as i can tell, these (non-style) attributes cant be set in css
-	setMedal();
+	//setMedal();
 	await loadManaSymbols();
 	getNewCard();
 	
